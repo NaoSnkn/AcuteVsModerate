@@ -5,9 +5,11 @@ library(forcats)
 library(ggplot2)
 library(extrafont)
 
+# Load fonts
 font_import(paths ="D:/AIMS/Master Thesis/Fonts") # Fonts have to be TrueType # Change fonts
 loadfonts()
 
+# Call data
 MHSE <- read_excel("D:/AIMS/Master Thesis/Data/Moderate/MetadataModerateAhya_Final.xlsx") # Call Moderate data
 AHSE <- read_excel("D:/AIMS/Master Thesis/Data/Acute/Compiled_Ahya_Acute_Final.xlsx") # Call Acute data
 
@@ -20,6 +22,7 @@ MHSE <- subset(MHSE, MHSE$Genotype !="301" & MHSE$Genotype !="305" & MHSE$Genoty
 ### Models analysis ####
 #------------------------#
 
+Required packages:
 library(emmeans) # for paired comparison
 library("DHARMa") # to see residuals
 library(glmmTMB) # generalized, different distribution
@@ -311,10 +314,13 @@ ggplot(Moderate, aes(x=Days, y=FvFm, color=Temperature))+
 ### Survival analysis ####
 #------------------------#
 
+# Required packages:
 library(survival)
 library(coxme)
 library(survminer)
 library(ggquickeda)
+
+# Call data
 survivorship <-read_excel("D:/AIMS/Master Thesis/Data/Moderate/Survivorship/SurvivorshipModerateFinal.xlsx")
 survivorship$Tank <- as.character(survivorship$Tank)
 survivorship$TotalDayAlive <- as.numeric(survivorship$TotalDayAlive)
@@ -357,11 +363,11 @@ anova(m1,m2,m3,m4) # Compare models using anova or looking at smallest LogLik va
 
       ## Survivorship and ranking assessement ##
 
+# Select 31.5°C and establish survfit
 subset_treatment <- survivorship[survivorship$Temperature == "31.5", ]
 survival_curve_Treatment<- survfit(Surv(subset_treatment$TotalDayAlive, 
                                         subset_treatment$Dead)~Genotype,
                                         data=subset_treatment)
- # Probabilité de survie en fonction du temps par génotype.
 
 # Ranking
 
@@ -393,11 +399,13 @@ ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature,
         panel.grid.minor=element_blank()
   )
 
+# Arrange data
 SurvRank <- SurvRank %>%
-  arrange(-Survival) # Arrange rank data frame according to ranks
+  arrange(-Survival) # Arrange according to ranks
 Geno_order <- as.factor(SurvRank$Genotype) # Create a factor of genotype ordered in desired ranking
 survivorship$Genotype <- factor(survivorship$Genotype, levels = Geno_order) # Reorder data according to this factor
 
+# Survivorship per genotype according to time
 ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature, group=Temperature)) +
   geom_km()+
   facet_wrap(~ Genotype, ncol=5)+
@@ -413,22 +421,25 @@ ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature,
         panel.grid.minor=element_blank()
         )
 
-# Delta Fv/Fm (MHSE) -----
+#------------------------------#
+### Delta Fv/Fm of the MHSE ####
+#------------------------------#
 
+# Call data
 deltaFvFm <- subset(MHSE, MHSE$PAR =="0") # Don't consider columns without IPAM measurements
 
-  # ANALYSIS : #
+  #--------### ANALYSIS ###---------#
 
 deltaFvFm_treat <- subset(deltaFvFm, deltaFvFm$Temperature =="31.5") # Only consider treatment
 
-# Getting Deltas #
+        ## Calculate deltas of Fv/Fm ##
 
 # Get one data frame per day
 T0 <- subset(deltaFvFm, deltaFvFm$MeasureDate =="20240320"); T1 <- subset(deltaFvFm, deltaFvFm$MeasureDate =="20240402"); T2 <- subset(deltaFvFm, deltaFvFm$MeasureDate =="20240408")
 
 # Merge data sets according to position and calculate delta for T0-T1, T0-T2 and T1-T2. 
 T0T1 <- left_join(T0, T1[,c("Position","FvFm")], by = "Position") 
-T0T1$DeltaFvFm = T0T1$FvFm.y-T0T1$FvFm.x
+T0T1$DeltaFvFm = T0T1$FvFm.y-T0T1$FvFm.x # Calculate Deltas
 T0T1$Delta = "T0 to T1" # Add columns with type of delta.
 T0T2 <- left_join(T0, T2[,c("Position","FvFm")], by = "Position")
 T0T2$DeltaFvFm = T0T2$FvFm.y-T0T2$FvFm.x # Need to just keep 1, 14, 1841, 279, 298, 314, 328, 350, 355, 8, 3qm2tagea
@@ -438,26 +449,28 @@ T1T2$DeltaFvFm = T1T2$FvFm.y-T1T2$FvFm.x
 T1T2$Delta = "T1 to T2"
 Deltas <- rbind(T0T1, T1T2, T0T2) # Make one big data frame.
 
-# Ranking #
+        ## Delta Fv/Fm Ranking ##
 
-slopeGeno <- T0T1 |> 
+dT0T1 <- T0T1 |> 
   group_by(Genotype) |>  
-  filter(!is.na(DeltaFvFm)) |> 
-  summarize(Delta=mean(DeltaFvFm),
-            Delta_SE = sd(DeltaFvFm, na.rm = TRUE) / sqrt(sum(!is.na(DeltaFvFm)))) # Mean of slopes for each genotypes
-slopeGeno <- as.data.frame(slopeGeno) # Turn results into data frame to be able to rank
-slopeGeno$DRank <- rank(-slopeGeno$Delta)
-print(slopeGeno)
+  filter(!is.na(DeltaFvFm)) |> # exclude NAs
+  summarize(Delta=mean(DeltaFvFm), # Mean of slopes, deltas for each genotypes
+            Delta_SE = sd(DeltaFvFm, na.rm = TRUE) / sqrt(sum(!is.na(DeltaFvFm)))) 
+dT0T1 <- as.data.frame(dT0T1) # Turn results into data frame to be able to rank
+dT0T1$DRank <- rank(-dT0T1$Delta)
+print(dT0T1) # Shows values, standard error and ranks
 
-    # VIZUALISATION : #
+ #--------### VIZUALISATION ###---------#    
 
-slopeGeno <- slopeGeno %>%
+# Arrange data
+dT0T1 <- dT0T1 %>%
   arrange(-Delta) # Arrange rank data frame according to ranks
-Geno_order <- as.factor(slopeGeno$Genotype) # Create a factor of genotype ordered in desired ranking
-
-# Box plots #
-
+Geno_order <- as.factor(dT0T1$Genotype) # Create a factor of genotype ordered in desired ranking
 Deltas$Genotype <- factor(Deltas$Genotype, levels = Geno_order) # Reorder data according to this factor
+deltaFvFm$Genotype <- factor(deltaFvFm$Genotype, levels = Geno_order) # Reorder data according to this factor
+deltaFvFm_treat$Genotype <- factor(deltaFvFm_treat$Genotype, levels = Geno_order) # Reorder data according to this factor
+
+        ## Box plots ##
 
 ggplot(Deltas, aes(x=Genotype, y=DeltaFvFm, fill=Genotype))+
   geom_boxplot()+
@@ -472,10 +485,7 @@ ggplot(Deltas, aes(x=Genotype, y=DeltaFvFm, fill=Genotype))+
         panel.grid.minor=element_blank()
   ) # Have to remove either x axis or genotype legend
 
-# Slopes visualisations ## Slopes visualisations #Days
-
-deltaFvFm$Genotype <- factor(deltaFvFm$Genotype, levels = Geno_order) # Reorder data according to this factor
-deltaFvFm_treat$Genotype <- factor(deltaFvFm_treat$Genotype, levels = Geno_order) # Reorder data according to this factor
+       ## Slopes per Genet ##
 
 # Fv/Fv according to temperature per genotype with adjusted linear model
 ggplot(deltaFvFm, aes(x=Days, y=FvFm, fill=Temperature, color=Temperature))+
@@ -512,20 +522,27 @@ ggplot(deltaFvFm_treat, aes(x=Days, y=FvFm, color=Genotype))+
         legend.position = "none"
   )
 
-# AHSE ED50 (AHSE) -----------
+#-----------------------------#
+### Fv/Fm ED50 of the AHSE ####
+#-----------------------------#
 
+# Required packages:
 library(drc)
 
+# Call data
 AHSE <- subset(AHSE, AHSE$PAR =="0") # Don't consider columns without IPAM measurements
 
-  # ANALYSIS :
+      #----------# ANALYSIS #------------#
+
+            ## Modelisation ##
 
 # drm() creates a model, mselect(,icfct = AIC) calculate AIC of models for each fonctions 
 EDAcute <- drm(FvFm ~ Temperature, data=AHSE, curveid=Genotype, fct=LL.3());EDAcute 
 mselect(EDAcute, list(LL.3(), LL.2(), LL.4(), LL.5(), LL2.2(), LL2.3(), LL2.4(), LL2.5(), AR.2(), AR.3(), EXD.2(), EXD.3()), icfct = AIC)
+        # Best model will have the smallest AIC
 summary(EDAcute)
 
-# Ranking : 
+            ## Effective-Dose at 50% ranking ##
 
 ED50Acute <- data.frame(ED(EDAcute, 50));ED50Acute # Put ED50 into data frame
 ED50Acute_rownames <- gsub("^e:([^:]+):[0-9]+$", "\\1", rownames(ED50Acute))
@@ -533,18 +550,19 @@ rownames(ED50Acute) <- ED50Acute_rownames
 ED50Acute$Genotype <- ED50Acute_rownames;rownames(ED50Acute)=NULL # Assign corresponding genotype to row names
 ED50Acute$ED50 <- ED50Acute$Estimate ; ED50Acute <- subset(ED50Acute, select = -Estimate) # Rename Estimate column into ED50
 ED50Acute$ERank= rank(-ED50Acute$ED50) # Add Rank column
-ED50Acute
+ED50Acute # Shows estimated ED50, Standard error and ranking
 
-  # VIZUALISATION :
+        #----------# VIZUALISATION #------------#
 
+# Arrange Data
 ED50Acute <- ED50Acute %>%
   arrange(ERank) # Arrange rank data frame according to ranks
 Geno_order <- as.factor(ED50Acute$Genotype) # Create a factor of genotype ordered in desired ranking
 AHSE$Genotype <- factor(AHSE$Genotype, levels = Geno_order) # Reorder data according to this factor
 ED50Acute$Genotype <- factor(ED50Acute$Genotype, levels = Geno_order) # Have to reorder this one because facet wrap is using it
 
-# All at once
-ED50_acute_plot_forall <- ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+ 
+# Merged Fv/Fm DRC and ED50s
+ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+ 
   geom_smooth(method=drm, #tells type of model
               method.args=list(fct = LL.3()), se=F)+ # tells how to smooth and what function to use
   geom_vline(data=ED50Acute, aes(xintercept=ED50, color=Genotype), linetype=1, linewidth=0.5)+ # Shows ED50s
@@ -560,11 +578,9 @@ ED50_acute_plot_forall <- ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype
         legend.text = element_text(family="Product Sans", size=11), 
         panel.grid.minor=element_blank()
   )
-ED50_acute_plot_forall
 
-# Per genotype
-
-ED50_acute_plot_pergeno <- ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+ 
+# Fv/Fm DRC and ED50s per Genet
+ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+ 
   geom_smooth(method=drm, method.args=list(fct = LL.3()), se=F)+
   geom_vline(data=ED50Acute, aes(xintercept=ED50, color=Genotype), linetype=2, linewidth=0.75)+
   geom_point(alpha=0.3,position=position_jitterdodge(0.05))+
@@ -578,31 +594,41 @@ ED50_acute_plot_pergeno <- ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotyp
         panel.grid.minor=element_blank(),
         legend.position="none"
   )
-ED50_acute_plot_pergeno
 
-# Ranking comparison -----
+#------------------------------#
+### Rankings comparison ####
+#------------------------------#
 
+Required packages:
 library(gridExtra)
 
-  # ANALYSIS : #
+        #---------# ANALYSIS #-----------#
 
-#Remove geno that can't be compared
+        ## Clean and process data ##
 
+# Remove genets that can't be compared
 SurvRank <- subset(SurvRank,Genotype!="1840" & Genotype!="292" & Genotype!="355" 
                    & Genotype!="270" & Genotype!="uk2" & Genotype!="329")
+ED50Acute <- filter(ED50Acute, Genotype!="5" & Genotype!="301" & Genotype!="305" &
+                    Genotype!="320" & Genotype!="335" & Genotype!="uk2" & Genotype!="329" )
+dT0T1 <- subset(dT0T1, Genotype!="1840" & Genotype!="292" & Genotype!="355" 
+                    & Genotype!="270" & Genotype!="5")
+
+# Ranks that consider values distances #
+
+#Order data
 SurvRank <- SurvRank[order(-SurvRank$Survival),]
 SurvRank$SRank <- rank(-SurvRank$Survival)
 # Calculate deltas for Survival
-SurvRank$deltas <- c(0, -diff(SurvRank$Survival))
-a <- max(SurvRank$Survival) - min(SurvRank$Survival)
-n <- nrow(SurvRank)-1
+SurvRank$deltas <- c(0, -diff(SurvRank$Survival)) # Difference between each adjacent value
+a <- max(SurvRank$Survival) - min(SurvRank$Survival) # Max range
+n <- nrow(SurvRank)-1 # number of observation - 1
 # Make true ranks for survival
-SurvRank$deltas <- SurvRank$deltas * n / a
+SurvRank$deltas <- SurvRank$deltas * n / a # Relative difference between supposed ranks
 SurvRank$S_Rank <- cumsum(SurvRank$deltas)+1
 
-ED50Acute <- filter(ED50Acute, Genotype!="5" & Genotype!="301" & Genotype!="305" &
-                    Genotype!="320" & Genotype!="335" & Genotype!="uk2" & Genotype!="329" )
-ED50Acute <- ED50Acute[order(-ED50Acute$ED50),] # Ranger dans l'ordre
+# Order data
+ED50Acute <- ED50Acute[order(-ED50Acute$ED50),] 
 ED50Acute$ERank <- rank(-ED50Acute$ED50)
 # Calculate deltas for Survival
 ED50Acute$deltas <- c(0, -diff(ED50Acute$ED50))
@@ -612,24 +638,31 @@ n <- nrow(ED50Acute)-1
 ED50Acute$deltas <- ED50Acute$deltas * n / a
 ED50Acute$E_Rank <- cumsum(ED50Acute$deltas)+1
 
-slopeGeno <- subset(slopeGeno, Genotype!="1840" & Genotype!="292" & Genotype!="355" 
-                    & Genotype!="270" & Genotype!="5")
-slopeGeno$Delt <- -slopeGeno$Delta 
-slopeGeno$DRank <- rank(-slopeGeno$Delta)
-slopeGeno <- slopeGeno[order(-slopeGeno$Delta),] # Ranger dans l'ordre
+# Order data
+dT0T1$Delt <- -dT0T1$Delta 
+dT0T1$DRank <- rank(-dT0T1$Delta)
+dT0T1 <- dT0T1[order(-dT0T1$Delta),] # Ranger dans l'ordre
 # Calculate deltas for Survival
-slopeGeno$deltas <- c(0, -diff(slopeGeno$Delta))
-a <- max(slopeGeno$Delta) - min(slopeGeno$Delta)
-n <- nrow(slopeGeno)-1
+dT0T1$deltas <- c(0, -diff(dT0T1$Delta))
+a <- max(dT0T1$Delta) - min(dT0T1$Delta)
+n <- nrow(dT0T1)-1
 # Make true ranks for Delta
-slopeGeno$deltas <- slopeGeno$deltas * n / a
-slopeGeno$D_Rank <- cumsum(slopeGeno$deltas)+1
+dT0T1$deltas <- dT0T1$deltas * n / a
+dT0T1$D_Rank <- cumsum(dT0T1$deltas)+1
 
-Ranking <- full_join(SurvRank, ED50Acute, by = "Genotype"); Ranking <- full_join(Ranking, slopeGeno, by = "Genotype")
+# Merge ranks
+Ranking <- full_join(SurvRank, ED50Acute, by = "Genotype"); Ranking <- full_join(Ranking, dT0T1, by = "Genotype")
 
+    ## Statistical Test ##
+
+# Spearman correlation tests, pairwise
 cor.test(rank(-(Ranking$Survival)),rank(-(Ranking$ED50)), method='spearman')
 cor.test(rank(-(Ranking$Survival)),rank(Ranking$Delta),method='spearman')
 cor.test(rank(Ranking$Delta),rank(-Ranking$ED50), method='spearman')
+
+        #---------# VIZUALISATION #-----------#
+
+        ## Correlation plots ##
 
 One <- ggplot(Ranking, aes(x=E_Rank,y=D_Rank, color=Genotype)) + 
   geom_point(size=3)+
@@ -669,35 +702,32 @@ Three <- ggplot(Ranking, aes(x=S_Rank,y=D_Rank, color=Genotype)) +
         legend.text = element_text(family="Product Sans"),
         panel.grid = element_blank())
 
-grid.arrange(arrangeGrob(One,Two, ncol=2), Three, ncol = 1)
+grid.arrange(arrangeGrob(One,Two, ncol=2), Three, ncol = 1) 
 
-  # VIZUALISATION #
+      ## Heatmap ##
 
-# Using a Heatmap
-
-#Make a total table for ranking
-SurvRank$Rank=SurvRank$SRank;ED50Acute$Rank=ED50Acute$ERank;slopeGeno$Rank=slopeGeno$DRank
-SurvRank$Metric="Survivorship";ED50Acute$Metric="ED50 of acute";slopeGeno$Metric="Fv/FM decrease in moderate"
-Sranking <- SurvRank[, c("Genotype", "Rank", "Metric")];EDranking <- ED50Acute[, c("Genotype", "Rank", "Metric")];Sloperanking <- slopeGeno[, c("Genotype", "Rank", "Metric")]
+# Make a total table for ranking and call data
+SurvRank$Rank=SurvRank$SRank;ED50Acute$Rank=ED50Acute$ERank;dT0T1$Rank=dT0T1$DRank
+SurvRank$Metric="Survivorship";ED50Acute$Metric="ED50 of acute";dT0T1$Metric="Fv/FM decrease in moderate"
+Sranking <- SurvRank[, c("Genotype", "Rank", "Metric")];EDranking <- ED50Acute[, c("Genotype", "Rank", "Metric")];Sloperanking <- dT0T1[, c("Genotype", "Rank", "Metric")]
 Rankings_merged <- rbind(Sranking, EDranking, Sloperanking)
 
+# Choose a color gradient for heatmap
 color_gradient <- colorRampPalette(c("#06d6a0", "#fee440","#ef476f"))
 
-# Ranking according to acute
+# Ranking according to the Fv/Fm ED50 of the acute
 
-b <- Rankings_merged %>%
+Heat1 <- Rankings_merged %>%
   mutate(Genotype = fct_relevel(Genotype, 
                           "8","1","ukchicken","3qm2tageat",
                           "302","298","293", "333","279","275","14",
                           "1841","314", "350","271qm",
                           "1842","328","272","318","360","7","239",
                           "11","317")) %>% # Genotype ordering according to Acute ED50
-  mutate(Metric = fct_relevel(Metric, 
-                              "ED50 of acute", "Fv/FM decrease in moderate", "Survivorship")) %>%
+  mutate(Metric = fct_relevel(Metric, "ED50 of acute", "Fv/FM decrease in moderate", "Survivorship")) %>%
   ggplot(aes(x = Metric, y = Genotype, fill = Rank)) +
   geom_tile() +
   scale_fill_gradientn(colors=color_gradient(100)) + # Green is top of rank
-  
   theme(axis.title = element_text(family="Source Sans Pro"),
         axis.text.x = element_text(family="Product Sans"),
         axis.text.y = element_text(family="Product Sans"),
@@ -705,19 +735,16 @@ b <- Rankings_merged %>%
         legend.title = element_text(family="Source Sans Pro"),
         legend.text = element_text(family="Imprima"), 
         panel.grid=element_blank(), panel.background = element_blank())
-  
-b
+Heat1
 
 # Ranking according to survival :
 custom_labels <- c("Fv/Fm ED50 \n of acute test", "Survival\nof moderate test","Delta Fv/Fm of\nmoderate test")
-  
-c <- Rankings_merged %>%
+Heat2 <- Rankings_merged %>%
   mutate(Genotype = fct_relevel(Genotype,"271qm","14","298","3qm2tageat","1841","350",
                                 "279","1","314","328","360","7","318","333",
                                 "1842","293","302","272","ukchicken","239","317","8",
                                 "11","275")) %>% # Genotype ordering according to Acute ED50
-  mutate(Metric = fct_relevel(Metric, 
-                              "ED50 of acute","Survivorship","Fv/FM decrease in moderate" )) %>%
+  mutate(Metric = fct_relevel(Metric, "ED50 of acute","Survivorship","Fv/FM decrease in moderate" )) %>%
   ggplot(aes(x = Metric, y = Genotype, fill = Rank)) +
   geom_tile() +
   ylab("Genet")+
@@ -733,8 +760,11 @@ c <- Rankings_merged %>%
         legend.text = element_text(family="Imprima"), 
         panel.grid=element_blank(), panel.background = element_blank()
   )
-c
+Heat2
 
-ggarrange(b, c, ncol = 2,
+ggarrange(Heat1, Heat2, ncol = 2,
           labels = c("A","B"))
 
+#------------------------#
+### Models analysis ####
+#------------------------#
