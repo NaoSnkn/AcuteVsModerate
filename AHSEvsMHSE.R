@@ -1,5 +1,3 @@
-# Final script 
-
 library("readxl")
 library(dplyr)
 library(tidyr)
@@ -7,20 +5,20 @@ library(forcats)
 library(ggplot2)
 library(extrafont)
 
-font_import(paths ="D:/AIMS/Master Thesis/Fonts") # Fonts have to be TrueType
+font_import(paths ="D:/AIMS/Master Thesis/Fonts") # Fonts have to be TrueType # Change fonts
 loadfonts()
 
-MHSE <- read_excel("D:/AIMS/Master Thesis/Data/Moderate/MetadataModerateAhya_Final.xlsx")
-AHSE <- read_excel("D:/AIMS/Master Thesis/Data/Acute/Compiled_Ahya_Acute_Final.xlsx")
+MHSE <- read_excel("D:/AIMS/Master Thesis/Data/Moderate/MetadataModerateAhya_Final.xlsx") # Call Moderate data
+AHSE <- read_excel("D:/AIMS/Master Thesis/Data/Acute/Compiled_Ahya_Acute_Final.xlsx") # Call Acute data
 
 # Remove genotype that cannot be used (x2 MMM7 missing because of F missing value)
 AHSE <- subset(AHSE, AHSE$Genotype !="292" & AHSE$Genotype !="355" & AHSE$Genotype !="1839"& AHSE$Genotype !="1840" & AHSE$Genotype !="270")
-
 # Remove genotype that cannot be used (Genotype not available for both treatments)
 MHSE <- subset(MHSE, MHSE$Genotype !="301" & MHSE$Genotype !="305" & MHSE$Genotype !="335")
 
-
-# Statistical Analysis ####
+#------------------------#
+### Models analysis ####
+#------------------------#
 
 library(emmeans) # for paired comparison
 library("DHARMa") # to see residuals
@@ -29,34 +27,26 @@ library(car) # Do ANOVA on glmm model
 library(fitdistrplus) # To identify distribution of data
 library(univariateML) # Confirm data distribution
 
-# Statistical test
+#-----# AHSE ANALYSIS #--------#
 
-# Call file with Fv/Fm
-Moderate <- subset(MHSE, MHSE$PAR =="0") # Don't consider columns without actual IPAM measurements
-Moderate <- Moderate %>% rename("Initials" = "Extractor Initials")
-
-# AHSE ANALYSIS : #
+    ## Statistics ##
 
 Acute <- AHSE |> mutate(fTemp=factor(Temperature))
 Acute$FvFm[Acute$FvFm == 0] <- 0.0000000000000001 # beta do not include 0
 
 # Identify FvFm distribution 
-
 descdist(Acute$FvFm, discrete = FALSE)
 model_select(Acute$FvFm) # Skew cannot be modelled with classic functions
 
 # Try different models
-control_mod = glmmTMBControl(optCtrl=list(iter.max = 10000, eval.max = 10000))
 
-
+control_mod = glmmTMBControl(optCtrl=list(iter.max = 10000, eval.max = 10000)) 
 A_mod1 <- glmmTMB(FvFm ~ fTemp*Genotype + (1|Tank)+(1|Reef), 
                 dispformula = ~fTemp,
                 data = Acute,
                 family = "beta_family",# Only consider treatment
                 control=control_mod)
-
-resid <- simulateResiduals(A_mod1, plot=TRUE) 
-
+resid <- simulateResiduals(A_mod1, plot=TRUE) # Residuals diagnostic
 summary(A_mod1)
 Anova(A_mod1)
 
@@ -64,16 +54,20 @@ a <- glmmTMB(FvFm ~ fTemp*Genotype + (1|Tank)+(1|Reef), dispformula = ~fTemp,dat
 b <- glmmTMB(FvFm ~ Genotype+fTemp + (1|Tank)+(1|Reef), dispformula = ~fTemp,data = Acute,family = "beta_family",control=control_mod)
 c <- glmmTMB(FvFm ~ fTemp + (1|Tank)+(1|Reef), dispformula = ~fTemp,data = Acute,family = "beta_family",control=control_mod)
 d <- glmmTMB(FvFm ~ Genotype + (1|Tank)+(1|Reef), dispformula = ~fTemp,data = Acute,family = "beta_family",control=control_mod)
-
-anova(a,b,c,d)
+anova(a,b,c,d) # Compare models
 
 A_mod1.em <- emmeans(A_mod1, ~Genotype|fTemp, type="response") |> 
   pairs() |> 
   summary(infer=TRUE) 
-A_mod1.em
+A_mod1.em # Pairwise comparison between genets
 
+    ## Vizualisation ##
+
+# Pairwise comparison vizualisation between genets
+
+# At 29°C
 A_mod1.em |> as.data.frame() |> 
-  filter(fTemp=='39') |> # Look at temp 39 only, only that shows significant difference #14
+  filter(fTemp=='29') |> 
   tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
   filter(!is.na(odds.ratio)) |> # only wthout na
   droplevels() |> 
@@ -93,6 +87,73 @@ A_mod1.em |> as.data.frame() |>
         panel.grid.minor=element_blank()
   )
 
+# At 33°C
+A_mod1.em |> as.data.frame() |> 
+  filter(fTemp=='33') |> 
+  tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
+  filter(!is.na(odds.ratio)) |> # only wthout na
+  droplevels() |> 
+  mutate(col=ifelse(asymp.UCL<1, 'Negative', ifelse(asymp.LCL>1, 'Positive','Neutral'))) |> 
+  ggplot(aes(x=odds.ratio, y=Genotype2))+ # Show significant differences between genotypes for day
+  geom_hline(yintercept=1)+
+  geom_pointrange(aes(xmin=asymp.UCL,xmax=asymp.LCL, colour=col))+
+  facet_wrap(Genotype1~., scales='free_y', nrow=3)+
+  scale_x_continuous(trans = scales::log2_trans())+
+  scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
+  theme(axis.title = element_text(family="Nunito"),
+        axis.text.y = element_text(family="Imprima"),
+        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
+        strip.text = element_text(family="Product Sans"),
+        legend.title = element_text(family="Nunito"),
+        legend.text = element_text(family="Product Sans"), 
+        panel.grid.minor=element_blank()
+  )
+
+# At 36°C
+A_mod1.em |> as.data.frame() |> 
+  filter(fTemp=='36') |> 
+  tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
+  filter(!is.na(odds.ratio)) |> # only wthout na
+  droplevels() |> 
+  mutate(col=ifelse(asymp.UCL<1, 'Negative', ifelse(asymp.LCL>1, 'Positive','Neutral'))) |> 
+  ggplot(aes(x=odds.ratio, y=Genotype2))+ # Show significant differences between genotypes for day
+  geom_hline(yintercept=1)+
+  geom_pointrange(aes(xmin=asymp.UCL,xmax=asymp.LCL, colour=col))+
+  facet_wrap(Genotype1~., scales='free_y', nrow=3)+
+  scale_x_continuous(trans = scales::log2_trans())+
+  scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
+  theme(axis.title = element_text(family="Nunito"),
+        axis.text.y = element_text(family="Imprima"),
+        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
+        strip.text = element_text(family="Product Sans"),
+        legend.title = element_text(family="Nunito"),
+        legend.text = element_text(family="Product Sans"), 
+        panel.grid.minor=element_blank()
+  )
+
+# At 39°C
+A_mod1.em |> as.data.frame() |> 
+  filter(fTemp=='39') |> 
+  tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
+  filter(!is.na(odds.ratio)) |> # only wthout na
+  droplevels() |> 
+  mutate(col=ifelse(asymp.UCL<1, 'Negative', ifelse(asymp.LCL>1, 'Positive','Neutral'))) |> 
+  ggplot(aes(x=odds.ratio, y=Genotype2))+ # Show significant differences between genotypes for day
+  geom_hline(yintercept=1)+
+  geom_pointrange(aes(xmin=asymp.UCL,xmax=asymp.LCL, colour=col))+
+  facet_wrap(Genotype1~., scales='free_y', nrow=3)+
+  scale_x_continuous(trans = scales::log2_trans())+
+  scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
+  theme(axis.title = element_text(family="Nunito"),
+        axis.text.y = element_text(family="Imprima"),
+        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
+        strip.text = element_text(family="Product Sans"),
+        legend.title = element_text(family="Nunito"),
+        legend.text = element_text(family="Product Sans"), 
+        panel.grid.minor=element_blank()
+  )
+
+# Vizualisation of Fv/Fm decrease with temperature
 ggplot(Acute, aes(x=Temperature, y=FvFm, color=Temperature))+
   geom_smooth(aes(color=..x..), linewidth=2)+
   geom_point(size=2)+
@@ -108,15 +169,30 @@ ggplot(Acute, aes(x=Temperature, y=FvFm, color=Temperature))+
         panel.grid.minor=element_blank(),
         legend.position = 'none')
 
+#-----# MHSE ANALYSIS #--------#
 
-# MHSE ANALYSIS # 
+    ## Statistics ##
 
-# Try different models
+# Call file with Fv/Fm
+Moderate <- subset(MHSE, MHSE$PAR =="0") # Don't consider columns without actual IPAM measurements
 Moderate <- Moderate |> mutate(fDays=factor(Days))
 Moderate <- Moderate |> mutate(fTemp=factor(Temperature))
 
-# Check temperature effect :
+# Try different models:
+a <- glmmTMB(FvFm ~ fDays*Genotype*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+b <- glmmTMB(FvFm ~ Genotype*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+c <- glmmTMB(FvFm ~ fDays*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+d <- glmmTMB(FvFm ~ fDays*Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+e <- glmmTMB(FvFm ~ fDays + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+f <- glmmTMB(FvFm ~ Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+g <- glmmTMB(FvFm ~ fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+h <- glmmTMB(FvFm ~ fDays+Genotype+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+i <- glmmTMB(FvFm ~ Genotype+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+j <- glmmTMB(FvFm ~ fDays+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+k <- glmmTMB(FvFm ~ fDays+Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
+AIC(a, b, c, d, e, f, g, h, i,j, k) # Compare models
 
+# Check time & temperature effect :
 M_mod1 <- glmmTMB(FvFm ~ fDays*fTemp + (1|Tank)+(1|Reef), 
                 dispformula = ~fDays, # What gives the main variation
                 data = Moderate,
@@ -129,8 +205,9 @@ Anova(M_mod1)
 M_mod1.em <- emmeans(M_mod1, ~fTemp|fDays, type="response") |> 
   pairs() |> 
   summary(infer=TRUE) 
-M_mod1.em
+M_mod1.em # Pairwise comparison
 
+# Vizualisation of pairwise comparison
 M_mod1.em |> as.data.frame() |> 
   filter(!is.na(odds.ratio)) |> # only without na
   droplevels() |> 
@@ -149,7 +226,7 @@ M_mod1.em |> as.data.frame() |>
         panel.grid.minor=element_blank()
   )
 
-# Create model
+# Effect of Temperature, Time and Genet on Fv/Fm
 M_mod2 <- glmmTMB(FvFm ~ fDays*Genotype*fTemp + (1|Tank), 
                 dispformula = ~fDays, # What gives the main variation
                 data = Moderate, # Only consider treatment
@@ -160,32 +237,18 @@ resid <- simulateResiduals(M_mod2, plot=TRUE) # Look at the residuals
   # Looking at how dots fit normality
   # Lines should be parallel to one another
   # Adjust the model and get as close as possible to assumptions
-
 summary(M_mod2)
 Anova(M_mod2)
 
-a <- glmmTMB(FvFm ~ fDays*Genotype*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-b <- glmmTMB(FvFm ~ Genotype*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-c <- glmmTMB(FvFm ~ fDays*fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-d <- glmmTMB(FvFm ~ fDays*Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-e <- glmmTMB(FvFm ~ fDays + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-f <- glmmTMB(FvFm ~ Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-g <- glmmTMB(FvFm ~ fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-h <- glmmTMB(FvFm ~ fDays+Genotype+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-i <- glmmTMB(FvFm ~ Genotype+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-j <- glmmTMB(FvFm ~ fDays+fTemp + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-k <- glmmTMB(FvFm ~ fDays+Genotype + (1|Tank), dispformula = ~fDays, data = Moderate, family="beta_family",REML=TRUE)
-
-AIC(a, b, c, d, e, f, g, h, i,j, k)
-
-# Says what day, genotype is significantly different from one another
 M_mod2.em <- emmeans(M_mod2, ~Genotype|fDays|fTemp, type="response") |> 
   pairs() |> 
   summary(infer=TRUE) 
-M_mod2.em # odds.ratio tells type of variation around, p-value tells confidence in the given variation
+M_mod2.em # odds.ratio tell the type of variation around, p-value tells confidence in the given variation
         # Variation cannot be assessed confidently if possible value =1
 
-# Visualize statistics
+       ## Visualisation ##
+
+# Visualize pairwise comparison at day 20
 M_mod2.em |> as.data.frame() |> 
   filter(fDays=='20') |> # Look at day 20 only
   tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
@@ -206,6 +269,7 @@ M_mod2.em |> as.data.frame() |>
         panel.grid.minor=element_blank()
   )
 
+# Visualize pairwise comparison at day 14
 M_mod2.em |> as.data.frame() |> 
   filter(fDays=='14') |> filter(fTemp!='28') |> # Look at day 14 only
   tidyr::separate(contrast,into=c('Genotype1','Genotype2'), sep='/') |> 
@@ -227,7 +291,7 @@ M_mod2.em |> as.data.frame() |>
         panel.grid.minor=element_blank()
   )
 
-# Broadly check the difference between treatments
+# Vizualisation of Fv/Fm variation with temperature
 ggplot(Moderate, aes(x=Days, y=FvFm, color=Temperature))+
   geom_smooth(linewidth=1)+
   geom_point(size=2)+
@@ -243,7 +307,9 @@ ggplot(Moderate, aes(x=Days, y=FvFm, color=Temperature))+
         panel.grid.minor=element_blank()
   )
 
-# Survival Analysis (MHSE) ----------------------------------------------------------
+#------------------------#
+### Survival analysis ####
+#------------------------#
 
 library(survival)
 library(coxme)
@@ -254,57 +320,43 @@ survivorship$Tank <- as.character(survivorship$Tank)
 survivorship$TotalDayAlive <- as.numeric(survivorship$TotalDayAlive)
 survivorship$Temperature <- as.factor(survivorship$Temperature)
 
-  # ANALYSIS 
+#--------### ANALYSIS ###---------#
 
-# Statistics
-died=Surv(survivorship$TotalDayAlive, survivorship$Dead);died # Survival prob
+died1=Surv(survivorship$TotalDayAlive, survivorship$Dead);died # Survorship variable
+survivorship$Temperature <- as.character(survivorship$Temperature)
 
-scurveT=survfit(died~Temperature, data=survivorship)
-scurveT # Survivorship according to temperature
-
-scurveG<- survfit(died~Genotype,data=survivorship)
-scurveG # Survivorship according to genotype
-
-scurveGxT<- survfit(died~Temperature+Genotype,data=survivorship)
-scurveGxT # Which genotypes survive best at each temperature
+        ## Modelisation ##
 
 # Identify a model that accounts for full effects and tests for potential interaction :
-
-survivorship$Temperature <- as.character(survivorship$Temperature)
 survivorship <- filter(survivorship, survivorship$Genotype!="14" & survivorship$Genotype!="329" & survivorship$Genotype!="271qm" )
-died=Surv(survivorship$TotalDayAlive, survivorship$Dead);died
+    # Remove genotype with less than 2 replicate
+died=Surv(survivorship$TotalDayAlive, survivorship$Dead);died # Survorship variable # Use this new variable for model only
 
 control<-coxme.control(iter.max=300) # Maximum times the model tries to adjust 
-m1<-coxme(died~Temperature*Genotype+(1|Tank)+(1|Reef), data=survivorship, control=control) #Adjust to consider rare geno
-m1$loglik[1]*m1$loglik[3] # NULL*Penalized =220420.1
+
+m1<-coxme(died~Temperature*Genotype+(1|Tank)+(1|Reef), data=survivorship, control=control)
+LogLik1 <- m1$loglik[1]*m1$loglik[3] # NULL*Penalized
 summary(m1)
 test.m1 <- cox.zph(m1) ; test.m1 # cox.zph() works for both coxme and coxph
 Anova(m1)
 
 m2<-coxme(died~Temperature+Genotype+(1|Tank)+(1|Reef), data=survivorship)
-m2$loglik[1]*m2$loglik[3] # = 227536.3
+LogLik2 <- m2$loglik[1]*m2$loglik[3] # = 227536.3
 test.m2 <- cox.zph(m2) ; test.m2 # cox.zph() works for both coxme and coxph
 m2
 m3<-coxme(died~Temperature+(1|Tank)+(1|Reef), data=survivorship)
-m3$loglik[1]*m3$loglik[3] # = 268680.2 
+LogLik3 <- m3$loglik[1]*m3$loglik[3] # = 268680.2 
 test.m3 <- cox.zph(m3); test.m3
 m3
-
 m4<-coxme(died~Genotype+(1|Tank)+(1|Reef), data=survivorship)
-m4$loglik[1]*m4$loglik[3] # 226353.6
+LogLik4 <- m4$loglik[1]*m4$loglik[3] # 226353.6
 test.m4 <- cox.zph(m4); test.m4
 m4
 
-AIC(m1,m2,m3,m4)
-anova(m1,m2,m3,m4)
+anova(m1,m2,m3,m4) # Compare models using anova or looking at smallest LogLik value
 
-subset_treatment <- survivorship[survivorship$Temperature == "31.5", ]
-m5<-coxme(died~Genotype+(1|Tank)+(1|Reef), data=subset_treatment)
-m5$loglik[1]*m5$loglik[3] # 226353.6
-test.m5 <- cox.zph(m5); test.m5
-m5
+      ## Survivorship and ranking assessement ##
 
-# Survivorship
 subset_treatment <- survivorship[survivorship$Temperature == "31.5", ]
 survival_curve_Treatment<- survfit(Surv(subset_treatment$TotalDayAlive, 
                                         subset_treatment$Dead)~Genotype,
@@ -313,17 +365,18 @@ survival_curve_Treatment<- survfit(Surv(subset_treatment$TotalDayAlive,
 
 # Ranking
 
-SurvRank <- summary(survival_curve_Treatment)$table[,5:6] # 5th column = mean and 6th column = standard error of
-SurvRank <- as.table(SurvRank) 
-SurvRank <- as.data.frame(SurvRank) # Transform data into data frame.
-SurvRank <- pivot_wider(SurvRank, names_from = Var2, values_from = Freq)
+SurvRank <- summary(survival_curve_Treatment)$table[,5:6]
+      # 5th column = mean and 6th column = standard error of
+SurvRank <- as.table(SurvRank) # 1st step. Transform data into data frame.
+SurvRank <- as.data.frame(SurvRank) # 2nd step. Transform data into data frame.
+SurvRank <- pivot_wider(SurvRank, names_from = Var2, values_from = Freq) # Pivot table
 SurvRank$Genotype <- SurvRank$Var1 ; SurvRank <- subset(SurvRank, select = -Var1)
 SurvRank$Survival <- SurvRank$rmean ; SurvRank <- subset(SurvRank, select = -rmean)
 SurvRank$Genotype <- gsub("^Genotype=", "", SurvRank$Genotype) # Adjust names
 SurvRank$SRank <- rank(-SurvRank$Survival) # Rank from higher to lower
-print(SurvRank, n=31)
+print(SurvRank, n=31) # Show values, standard error and ranks
 
-# VIZUALISATION :
+#--------### VIZUALISATION ###---------#
 
 # Treatment comparison
 ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature, group=Temperature)) +
