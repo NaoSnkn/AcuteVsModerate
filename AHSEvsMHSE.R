@@ -10,8 +10,8 @@ font_import(paths ="D:/AIMS/Master Thesis/Fonts") # Fonts have to be TrueType # 
 loadfonts()
 
 # Call data
-MHSE <- read_excel("D:/AIMS/Master Thesis/Data/Moderate/MetadataModerateAhya_Final.xlsx") # Call Moderate data
-AHSE <- read_excel("D:/AIMS/Master Thesis/Data/Acute/Compiled_Ahya_Acute_Final.xlsx") # Call Acute data
+MHSE <- read_excel("D:/AIMS/Master Thesis/Data/Moderate/Ahya_Moderate_FvFm.xlsx") # Call Moderate data
+AHSE <- read_excel("D:/AIMS/Master Thesis/Data/Acute/Ahya_Acute_FvFm.xlsx") # Call Acute data
 
 # Remove genotype that cannot be used (x2 MMM7 missing because of F missing value)
 AHSE <- subset(AHSE, AHSE$Genotype !="292" & AHSE$Genotype !="355" & AHSE$Genotype !="1839"& AHSE$Genotype !="1840" & AHSE$Genotype !="270")
@@ -278,7 +278,7 @@ library(survminer)
 library(ggquickeda)
 
 # Call data
-survivorship <-read_excel("D:/AIMS/Master Thesis/Data/Moderate/Survivorship/SurvivorshipModerateFinal.xlsx")
+survivorship <-read_excel("D:/AIMS/Master Thesis/Data/Moderate/Survivorship/Ahya_Survivorship.xlsx")
 survivorship$Tank <- as.character(survivorship$Tank)
 survivorship$TotalDayAlive <- as.numeric(survivorship$TotalDayAlive)
 survivorship$Temperature <- as.factor(survivorship$Temperature)
