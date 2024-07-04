@@ -81,15 +81,7 @@ A_mod1.em |> as.data.frame() |>
   facet_wrap(Genotype1~., scales='free_y', nrow=3)+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Nunito"),
-        axis.text.y = element_text(family="Imprima"),
-        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
-
+ 
 # At 33°C
 A_mod1.em |> as.data.frame() |> 
   filter(fTemp=='33') |> 
@@ -103,14 +95,6 @@ A_mod1.em |> as.data.frame() |>
   facet_wrap(Genotype1~., scales='free_y', nrow=3)+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Nunito"),
-        axis.text.y = element_text(family="Imprima"),
-        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
 
 # At 36°C
 A_mod1.em |> as.data.frame() |> 
@@ -125,14 +109,6 @@ A_mod1.em |> as.data.frame() |>
   facet_wrap(Genotype1~., scales='free_y', nrow=3)+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Nunito"),
-        axis.text.y = element_text(family="Imprima"),
-        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
 
 # At 39°C
 A_mod1.em |> as.data.frame() |> 
@@ -147,15 +123,7 @@ A_mod1.em |> as.data.frame() |>
   facet_wrap(Genotype1~., scales='free_y', nrow=3)+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Nunito"),
-        axis.text.y = element_text(family="Imprima"),
-        axis.text.x = element_text(family="Product Sans", angle=90, vjust=0.5, hjust=1),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
-
+ 
 # Vizualisation of Fv/Fm decrease with temperature
 ggplot(Acute, aes(x=Temperature, y=FvFm, color=Temperature))+
   geom_smooth(aes(color=..x..), linewidth=2)+
@@ -163,14 +131,19 @@ ggplot(Acute, aes(x=Temperature, y=FvFm, color=Temperature))+
   scale_x_continuous(expression(Temperature~("°C")), limits=c(28.5,39.5), breaks=c(29,33,36,39))+
   scale_y_continuous(expression(Photosynthetic~efficiency~(Fv/Fm)), limits=c(0.15,0.7), breaks=c(0.2,0.4,0.6),expand = c(0.005, 0.005))+
   scale_colour_gradient(low="#30D4F1", high="#FF5353")+
-  theme_grey(base_size=18)+
-  theme(axis.title = element_text(family="Nunito"),
+  theme_classic(base_size=18)+
+  theme(axis.title = element_text(family="DM Sans"),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
+        strip.text = element_text(family="DM Sans"),
+        legend.title = element_text(family="DM Sans SemiBold"),
+        legend.text = element_text(family="DM Sans"), 
         panel.grid.minor=element_blank(),
-        legend.position = 'none')
+        legend.position = 'none')+
+  stat_cor(method = "spearman",
+           label.x.npc = "left",
+           label.y.npc = "bottom", 
+           family="DM Sans", 
+           size=5)
 
 #-----# MHSE ANALYSIS #--------#
 
@@ -221,13 +194,6 @@ M_mod1.em |> as.data.frame() |>
   facet_grid(fDays~., space='free', scales='free_y')+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#A3E059"))+
-  theme(axis.title = element_text(family="Work Sans Medium"),
-        axis.text = element_text(family="Product Sans"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Helvetica Neue eText Pro Medium"),
-        legend.text = element_text(family="Helvetica Neue eText Pro Medium"), 
-        panel.grid.minor=element_blank()
-  )
 
 # Effect of Temperature, Time and Genet on Fv/Fm
 M_mod2 <- glmmTMB(FvFm ~ fDays*Genotype*fTemp + (1|Tank), 
@@ -264,14 +230,7 @@ M_mod2.em |> as.data.frame() |>
   facet_grid(Genotype1~., space='free', scales='free_y')+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Source Sans Pro"),
-        axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Source Sans Pro"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
-
+ 
 # Visualize pairwise comparison at day 14
 M_mod2.em |> as.data.frame() |> 
   filter(fDays=='14') |> filter(fTemp!='28') |> # Look at day 14 only
@@ -285,31 +244,29 @@ M_mod2.em |> as.data.frame() |>
   facet_wrap(Genotype1~., scale="free_y", ncol=6, strip.position = "top")+
   scale_x_continuous(trans = scales::log2_trans())+
   scale_color_manual('',breaks=c('Negative','Neutral','Positive'),values=c("#F66060","black","#87C43D"))+
-  theme(axis.title = element_text(family="Source Sans Pro"),
-        axis.text = element_text(family="Imprima"),
-        axis.text.y = element_text(family="Product Sans", size=6),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Source Sans Pro"),
-        legend.text = element_text(family="Product Sans"), 
-        panel.grid.minor=element_blank()
-  )
 
 # Vizualisation of Fv/Fm variation with temperature
+
+kruskal.test(FvFm ~ Temperature, data = Moderate)
+
 ggplot(Moderate, aes(x=Days, y=FvFm, color=Temperature))+
   geom_smooth(linewidth=1)+
   geom_point(size=2)+
   scale_color_manual(values = c("#30D4F1", "#FF5353"))+
   scale_x_continuous(expression(Time~(Days)), limits=c(0,21), breaks=c(1,14,20),expand = c(0.005, 0.005))+
   scale_y_continuous(expression(Photosynthetic~efficiency~(Fv/Fm)), limits=c(0,0.7), breaks=c(0,0.2,0.4,0.6),expand = c(0.005, 0.005))+
-  theme_grey(base_size = 18)+
-  theme(axis.title = element_text(family="Nunito"),
+  theme_classic(base_size = 18)+
+  theme(axis.title = element_text(family="DM Sans"),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito", size=16),
-        legend.text = element_text(family="Product Sans", size=13), 
-        panel.grid.minor=element_blank()
-  )
-
+        strip.text = element_text(family="DM Sans"),
+        legend.title = element_text(family="DM Sans SemiBold", size=16),
+        legend.text = element_text(family="DM Sans", size=13), 
+        panel.grid.minor=element_blank())+ 
+  stat_cor(method = "spearman",
+           label.x.npc = 0.3,
+           label.y.npc = "bottom", 
+           family="DM Sans", 
+           size=5)
 #------------------------#
 ### Survival analysis ####
 #------------------------#
@@ -332,6 +289,17 @@ died1=Surv(survivorship$TotalDayAlive, survivorship$Dead);died # Survorship vari
 survivorship$Temperature <- as.character(survivorship$Temperature)
 
         ## Modelisation ##
+
+# Log-Rank stats
+
+scurveT=survfit(died~Temperature, data=survivorship) #Survivorship according to temperature
+surv_pvalue(scurveT) # Log-rank for Temperature
+
+scurveG<- survfit(died~Genotype,data=survivorship) # Survivorship according to genotype
+surv_pvalue(scurveG) # Log-rank for Genotype
+
+scurveGxT<- survfit(died~Temperature+Genotype,data=survivorship) # Survivorship according to Genotype and temperature
+surv_pvalue(scurveGxT) # Log-rank for Genotype+Temperature
 
 # Identify a model that accounts for full effects and tests for potential interaction :
 survivorship <- filter(survivorship, survivorship$Genotype!="14" & survivorship$Genotype!="329" & survivorship$Genotype!="271qm" )
@@ -387,15 +355,15 @@ print(SurvRank, n=31) # Show values, standard error and ranks
 # Treatment comparison
 ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature, group=Temperature)) +
   geom_km(linewidth=1.5)+
-  ylab("Photosynthetic efficiency (Fv/Fm)") +
+  ylab("Survivorship") +
   xlab("Time (Days)")+
   scale_color_manual(values = c("#30D4F1", "#FF5353"))+
-  theme_grey(base_size = 17)+
-  theme(axis.title = element_text(family="Nunito"),
+  theme_classic(base_size = 17)+
+  theme(axis.title = element_text(family="DM Sans"),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Product Sans"),
-        legend.text = element_text(family="Product Sans"), 
+        strip.text = element_text(family="DM Sans"),
+        legend.title = element_text(family="DM Sans SemiBold"),
+        legend.text = element_text(family="DM Sans"), 
         panel.grid.minor=element_blank()
   )
 
@@ -409,15 +377,15 @@ survivorship$Genotype <- factor(survivorship$Genotype, levels = Geno_order) # Re
 ggplot(survivorship, aes(time = TotalDayAlive, status = Dead, color=Temperature, group=Temperature)) +
   geom_km()+
   facet_wrap(~ Genotype, ncol=5)+
-  ylab("Photosynthetic efficiency (Fv/Fm)") +
+  ylab("Survivorship") +
   xlab("Time (Days)")+
   theme_grey(base_size = 15)+
   scale_color_manual(values = c("#30D4F1", "#FF5353"))+
-  theme(axis.title = element_text(family="Nunito"),
+  theme(axis.title = element_text(family="DM Sans"),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Product Sans"),
-        legend.text = element_text(family="Product Sans"), 
+        strip.text = element_text(family="DM Sans SemiBold"),
+        legend.title = element_text(family="DM Sans"),
+        legend.text = element_text(family="DM Sans"), 
         panel.grid.minor=element_blank()
         )
 
@@ -460,6 +428,16 @@ dT0T1 <- as.data.frame(dT0T1) # Turn results into data frame to be able to rank
 dT0T1$DRank <- rank(-dT0T1$Delta)
 print(dT0T1) # Shows values, standard error and ranks
 
+        ## Showing decrease from T0 to T1 with ratios ##
+
+T0T1r <- left_join(T0, T1[,c("Position","FvFm")], by = "Position") 
+T0T1r$DeltaFvFm = T0T1r$FvFm.y/T0T1r$FvFm.x # Calculate Deltas
+Ratios <- T0T1r |> 
+  group_by(Genotype) |>  
+  filter(!is.na(DeltaFvFm)) |> 
+  summarize(Ratio=mean(DeltaFvFm),
+            Ratio_SE=sd(DeltaFvFm, na.rm = TRUE) / sqrt(sum(!is.na(DeltaFvFm))))
+
  #--------### VIZUALISATION ###---------#    
 
 # Arrange data
@@ -470,20 +448,21 @@ Deltas$Genotype <- factor(Deltas$Genotype, levels = Geno_order) # Reorder data a
 deltaFvFm$Genotype <- factor(deltaFvFm$Genotype, levels = Geno_order) # Reorder data according to this factor
 deltaFvFm_treat$Genotype <- factor(deltaFvFm_treat$Genotype, levels = Geno_order) # Reorder data according to this factor
 
-        ## Box plots ##
+        ## Ratios comparison ##
 
-ggplot(Deltas, aes(x=Genotype, y=DeltaFvFm, fill=Genotype))+
-  geom_boxplot()+
-  facet_wrap(~Delta, nrow=3)+
-  ylab("Delta of photosynthetic efficiency (Fv/Fm)") +
-  xlab("Genet")+
-  theme(axis.title = element_text(family="Nunito"),
-        axis.text = element_text(family="Imprima"),
-        axis.text.x=element_text(family="Product Sans", angle = 55, hjust = 1),
-        strip.text = element_text(family="Product Sans"),
-        legend.position="none", 
-        panel.grid.minor=element_blank()
-  ) # Have to remove either x axis or genotype legend
+Ratios <- Ratios %>%
+  arrange(-Ratio)
+Geno_order <- as.factor(Ratios$Genotype)
+Ratios$Genotype <- factor(Ratios$Genotype, levels=Geno_order)
+
+ggplot(Ratios, aes(y=Ratio, x=Genotype))+
+  geom_segment(aes(xend=Genotype, yend=1, color=Genotype), linewidth=6.5)+
+  geom_errorbar(aes(ymin=Ratio-Ratio_SE, ymax=Ratio+Ratio_SE), width=.2, linewidth=0.7, color="grey30")+
+  theme_classic(base_size = 15)+
+  theme(axis.title = element_text(family="DM Sans"),
+        axis.text.y = element_text(family="Imprima"),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1,  family="DM Sans"),
+        legend.position = "none")
 
        ## Slopes per Genet ##
 
@@ -505,19 +484,36 @@ ggplot(deltaFvFm, aes(x=Days, y=FvFm, fill=Temperature, color=Temperature))+
         panel.grid.minor=element_blank()
   )
 
-# Fv/Fm through days per genotype for each position
-ggplot(deltaFvFm_treat, aes(x=Days, y=FvFm, color=Genotype))+
+# Fv/Fm through days per genotype
+ggplot(deltaFvFm_treat, aes(x=Days, y=FvFm, color=Genotype, fill=Genotype))+
   geom_smooth(method=lm, se=TRUE)+
   facet_wrap(~Genotype, ncol=6)+
   geom_point()+
   scale_x_continuous(expression(Time~(Days)), limits=c(0,21), breaks=c(1,14,20),expand = c(0.005, 0.005))+
   scale_y_continuous(expression(Photosynthetic~efficiency~(Fv/Fm)), limits=c(0.1,0.7), breaks=c(0,0.2,0.4,0.6),expand = c(0.005, 0.005))+
   theme_grey(base_size = 16)+
-  theme(axis.title = element_text(family="Nunito"),
+  theme(axis.title = element_text(family="DM Sans"),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans", size=11),
-        legend.title = element_text(family="Nunito"),
-        legend.text = element_text(family="Product Sans"), 
+        strip.text = element_text(family="DM Sans SemiBold", size=11),
+        legend.title = element_text(family="DM Sans"),
+        legend.text = element_text(family="DM Sans"), 
+        panel.grid.minor=element_blank(),
+        legend.position = "none"
+  )
+
+# Fv/Fm through days per genotype for each position
+ggplot(deltaFvFm_treat, aes(x=Days, y=FvFm, group=Position, color=Genotype))+
+  geom_line()+
+  facet_wrap(~Genotype, ncol=6)+
+  geom_point()+
+  scale_x_continuous(expression(Time~(Days)), limits=c(0,21), breaks=c(1,14,20),expand = c(0.005, 0.005))+
+  scale_y_continuous(expression(Photosynthetic~efficiency~(Fv/Fm)), limits=c(0.1,0.7), breaks=c(0,0.2,0.4,0.6),expand = c(0.005, 0.005))+
+  theme_grey(base_size = 16)+
+  theme(axis.title = element_text(family="DM Sans"),
+        axis.text = element_text(family="Imprima"),
+        strip.text = element_text(family="DM Sans SemiBold", size=11),
+        legend.title = element_text(family="DM Sans"),
+        legend.text = element_text(family="DM Sans"), 
         panel.grid.minor=element_blank(),
         legend.position = "none"
   )
@@ -571,13 +567,12 @@ ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+
   scale_y_continuous(expression(Photosynthetic~efficiency~(Fv/Fm)), limits=c(0,0.7), breaks=c(0,0.2,0.4,0.6),expand = c(0.005, 0.005))+
   theme_grey(base_size = 17)+
   labs(color="Genets", fill="Genets")+
-  theme(axis.title = element_text(family="Nunito", size=14),
+  theme(axis.title = element_text(family="DM Sans", size=14),
         axis.text = element_text(family="Imprima"),
-        strip.text = element_text(family="Product Sans"),
-        legend.title = element_text(family="Nunito", size=12),
-        legend.text = element_text(family="Product Sans", size=11), 
-        panel.grid.minor=element_blank()
-  )
+        strip.text = element_text(family="DM Sans"),
+        legend.title = element_text(family="DM Sans SemiBold", size=12),
+        legend.text = element_text(family="DM Sans", size=11), 
+        panel.grid=element_blank())
 
 # Fv/Fm DRC and ED50s per Genet
 ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+ 
@@ -592,8 +587,7 @@ ggplot(AHSE, aes(y=FvFm, x=Temperature, color=Genotype, fill=Genotype))+
         axis.text = element_text(family="Imprima"),
         strip.text = element_text(family="Product Sans", size=10),
         panel.grid.minor=element_blank(),
-        legend.position="none"
-  )
+        legend.position="none")
 
 #------------------------------#
 ### Rankings comparison ####
@@ -664,43 +658,53 @@ cor.test(rank(Ranking$Delta),rank(-Ranking$ED50), method='spearman')
 
         ## Correlation plots ##
 
-One <- ggplot(Ranking, aes(x=E_Rank,y=D_Rank, color=Genotype)) + 
-  geom_point(size=3)+
-  geom_smooth(se=TRUE)+
+One <- ggplot(Ranking, aes(x=E_Rank,y=D_Rank)) + 
+  geom_point(aes(color=Genotype), size=3)+
+  geom_smooth(method=lm, se=TRUE, color="black")+
   xlab("Fv/Fm ED50 of the acute")+
   ylab(expression(Delta*"Fv/Fm of the moderate"))+
-  theme_grey(base_size=15)+
+  theme_classic(base_size=15)+
   theme(legend.position = 'none',
-        axis.title = element_text(family="Product Sans", size=12),
+        axis.title = element_text(family="DM Sans", size=12),
         axis.text = element_text(family="Imprima"),
-        legend.title = element_text(family="Product Sans"),
-        legend.text = element_text(family="Product Sans"),
-        panel.grid = element_blank())
+        legend.title = element_text(family="DM Sans"),
+        legend.text = element_text(family="DM Sans"),
+        panel.grid = element_blank())+
+  stat_cor(method = "spearman",
+           family="DM Sans", 
+           size=5)
 
-Two <- ggplot(Ranking, aes(x=E_Rank,y=S_Rank, color=Genotype)) + 
-  geom_point(size=3)+
-  geom_smooth(se=TRUE)+
+Two <- ggplot(Ranking, aes(x=E_Rank,y=S_Rank)) + 
+  geom_point(aes(color=Genotype), size=3)+
+  geom_smooth(method=lm, se=TRUE, color="black")+
   xlab("Fv/Fm ED50 of the acute")+
   ylab("Survival trait of the moderate")+
-  theme_grey(base_size=15)+
+  theme_classic(base_size=15)+
   theme(legend.position = 'none',
-        axis.title = element_text(family="Product Sans", size=12),
+        axis.title = element_text(family="DM Sans", size=12),
         axis.text = element_text(family="Imprima"),
-        legend.title = element_text(family="Product Sans"),
-        legend.text = element_text(family="Product Sans"),
-        panel.grid = element_blank())
+        legend.title = element_text(family="DM Sans"),
+        legend.text = element_text(family="DM Sans"),
+        panel.grid = element_blank())+
+  stat_cor(method = "spearman",
+           family="DM Sans", 
+           size=5)
 
-Three <- ggplot(Ranking, aes(x=S_Rank,y=D_Rank, color=Genotype)) + 
-  geom_point(size=3)+
+Three <- ggplot(Ranking, aes(x=S_Rank,y=D_Rank)) + 
+  geom_point(aes(color=Genotype), size=3)+
+  geom_smooth(method=lm, se=TRUE, color="black")+
   xlab("Survival trait of the moderate")+
   ylab(expression(Delta*"Fv/Fm of the moderate"))+ 
   labs(color="Genet")+
-  theme_grey(base_size=15)+
-  theme(axis.title = element_text(family="Product Sans", size=13),
+  theme_classic(base_size=15)+
+  theme(axis.title = element_text(family="DM Sans", size=13),
         axis.text = element_text(family="Imprima"),
-        legend.title = element_text(family="Product Sans", size=13),
-        legend.text = element_text(family="Product Sans"),
-        panel.grid = element_blank())
+        legend.title = element_text(family="DM Sans", size=13),
+        legend.text = element_text(family="DM Sans"),
+        panel.grid = element_blank())+
+  stat_cor(method = "spearman",
+           family="DM Sans", 
+           size=5)
 
 grid.arrange(arrangeGrob(One,Two, ncol=2), Three, ncol = 1) 
 
